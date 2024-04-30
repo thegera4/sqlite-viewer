@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQLite Viewer</title>
+</head>
+<body>
+  <h1 id="main-title">SQLite DB Viewer</h1>
+  <p>Please select a DB to start:</p>
+  <button type="button" id="openDatabase">Open DB</button>
+  <select title="table-list" id="tableList">
+    <!-- The options will be fetched dynamically -->
+  </select>
+  <div id="tableContent">
+    <!-- The table will appear here dynamically with the data -->
+  </div>
+  <script>
+    // load the vscode API
+    const vscode = acquireVsCodeApi();
+
+    // open the database selection dialog on button (id=openDatabase) click
+    document.getElementById('openDatabase').addEventListener('click', () => { vscode.postMessage({ command: 'openDatabaseDialog'}); });
+
+    // fetch the table data when the user selects a table in the select element
+    document.getElementById('tableList').addEventListener('change', (event) => {
+      const selectedTable = event.target.value;
+      vscode.postMessage({ command: 'fetchTableData', tableName: selectedTable });
+    });
+
+    // listen for messages from the extension
+    window.addEventListener('message', event => {
+      const message = event.data;
+      switch (message.command) {
+        case 'showTables': // show the tables names in the select element
+          const tableList = document.getElementById('tableList');
+          tableList.innerHTML = message.tables.map(table => `<option value="${table}">${table}</option>`).join('');
+          break;
+        case 'showTableData': // show the table data in a table element
+          const tableData = message.data;
+          const tableContentDiv = document.getElementById('tableContent');
+          let tableHtml = '<table>';
+          tableHtml += '<tr>';
+          tableData.columns.forEach(column => { tableHtml += `<th>${column}</th>`; });
+          tableHtml += '</tr>';
+          tableData.rows.forEach(row => {
+            tableHtml += '<tr>';
+            row.forEach(cell => { tableHtml += `<td>${cell}</td>`; });
+            tableHtml += '</tr>';
+          });
+          tableHtml += '</table>';
+          tableContentDiv.innerHTML = tableHtml;
+          break;
+	    }
+    });
+  </script>
+</body>
+</html>
