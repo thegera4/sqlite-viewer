@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
 		panel.webview.onDidReceiveMessage(
 			message => {
 				switch (message.command) {
-					case 'openDatabaseDialog': // open file dialog
+					case 'openDatabaseDialog':
 						const options: vscode.OpenDialogOptions = {
 							canSelectMany: false,
 							openLabel: 'Open',
@@ -65,7 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 							}
 						});
 						break;
-					case 'fetchTableData': // fetch table data
+					case 'fetchTableData':
 						if (db) {
 							db.all(`SELECT * FROM ${message.tableName}`, [], (err, rows: any[]) => {
 								if (err) {
@@ -82,6 +82,37 @@ export function activate(context: vscode.ExtensionContext) {
 										columns: columns,
 										rows: tableData
 									}
+								});
+							});
+						} else {
+							vscode.window.showErrorMessage('No database opened');
+						}
+						break;
+					case 'deleteRecord':
+						if (db) {
+							db.run(`DELETE FROM ${message.tableName} WHERE rowid = ?`, [message.rowId], (err) => {
+								if (err) {
+									vscode.window.showErrorMessage('Error while deleting record: ' + err.message);
+									return;
+								}
+								vscode.window.showInformationMessage('Record deleted successfully');
+								//update ui table data
+								db.all(`SELECT rowid, * FROM ${message.tableName}`, [], (err, rows: any[]) => {
+									if (err) {
+										vscode.window.showErrorMessage('Error while fetching data: ' + err.message);
+										return;
+									}
+
+									let columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+									let tableData = rows.map(row => Object.values(row));
+
+									panel.webview.postMessage({
+										command: 'showTableData',
+										data: {
+											columns: columns,
+											rows: tableData
+										}
+									});
 								});
 							});
 						} else {

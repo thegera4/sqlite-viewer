@@ -59,6 +59,15 @@
     th {
       background-color: #0078d4;
     }
+    #deleteRecordButton {
+      padding: 10px 20px;
+      background-color: #ff5722;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -78,14 +87,15 @@
   <script>
     // load the vscode API
     const vscode = acquireVsCodeApi();
+    let selectedTable = ''; // store the selected table name
 
     // open the database selection dialog when you click on the button "Open DB"
     document.getElementById('openDatabase').addEventListener('click', () => { vscode.postMessage({ command: 'openDatabaseDialog'}); });
 
     // fetch the table data when the user selects a table in the "select" element
     document.getElementById('tableList').addEventListener('change', (event) => {
-        const selectedTable = event.target.value;
-        vscode.postMessage({ command: 'fetchTableData', tableName: selectedTable });
+      selectedTable = event.target.value;
+      vscode.postMessage({ command: 'fetchTableData', tableName: selectedTable });
     });
 
     // listen for messages from the extension
@@ -115,6 +125,30 @@
 
           tableHtml += '</table>';
           tableContentDiv.innerHTML = tableHtml;
+
+          // create the select element to delete a record
+          let deleteRecordSelect = document.createElement('select');
+          deleteRecordSelect.id = 'deleteRecordSelect';
+          tableData.rows.forEach((row, index) => {
+            let option = document.createElement('option');
+            option.value = row[0];
+            option.text = row[0];
+            deleteRecordSelect.appendChild(option);
+          });
+
+          // create the button element to delete a record
+          let deleteRecordButton = document.createElement('button');
+          deleteRecordButton.id = 'deleteRecordButton';
+          deleteRecordButton.innerText = 'Delete record';
+          deleteRecordButton.addEventListener('click', () => {
+            const selectedId = document.getElementById('deleteRecordSelect').value;
+            vscode.postMessage({ command: 'deleteRecord', tableName: selectedTable, rowId: selectedId });
+          });
+
+          // append the select and button elements to tableContentDiv
+          tableContentDiv.appendChild(deleteRecordSelect);
+          tableContentDiv.appendChild(deleteRecordButton);
+
           break;
         case 'showSelectedDB': // show the selected db name in the "paragraph" element next to the "Open DB" button
           const selectedDBSpan = document.getElementById('selectedDB').querySelector('span');
