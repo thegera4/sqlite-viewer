@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "sqlite-viewer.showDatabase",
-        "title": "Show SQLite DB"
+        "command": "sqlite-viewer.startDbViewer",
+        "title": "SQLite Viewer: Start"
       }
     ]
   },

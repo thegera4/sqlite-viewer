@@ -4,54 +4,132 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SQLite Viewer</title>
+  <style>
+    p {
+      font-size: 20px;
+    }
+    .db-selection {
+      display: flex;
+      align-items: center;
+      flex-direction: row;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    .no-db-selected {
+      color: #ff5722;
+      font-weight: bold;
+    }
+    .db-selected {
+      color: #0078d4;
+      font-weight: bold;
+    }
+    #openDatabase {
+      padding: 10px 20px;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-right: 1rem;
+    }
+    #openDatabase:hover {
+      background-color: #005a9e;
+    }
+    #selectedDB {
+      font-size: 16px;
+    }
+    select {
+      padding: 8px;
+      font-size: 14px;
+    }
+    #tableContent {
+      overflow-x: auto;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background-color: #333333;
+    }
+    th, td{
+      border: 1px solid #005a9ebf;
+      padding: 8px;
+      text-align: left;
+      width: 100%;
+    }
+    th {
+      background-color: #0078d4;
+    }
+  </style>
 </head>
 <body>
   <h1 id="main-title">SQLite DB Viewer</h1>
-  <p>Please select a DB to start:</p>
-  <button type="button" id="openDatabase">Open DB</button>
-  <select title="table-list" id="tableList">
-    <!-- The options will be fetched dynamically -->
-  </select>
-  <div id="tableContent">
-    <!-- The table will appear here dynamically with the data -->
+  <br/>
+  <p>Start by selecting an SQLite database:</p>
+  <div class="db-selection">
+    <button type="button" id="openDatabase">Open DB</button>
+    <p id="selectedDB">Selected: <span class="no-db-selected">No database selected.</span></p> <!-- The selected name will change dynamically, see the script-->
   </div>
+  <p>Select the table that you want to display:</p>
+  <select title="table-list" id="tableList">
+    <option value="">Please select a database first</option> <!-- Other options (table names) will be fetched dynamically, see the script-->
+  </select> 
+  <br/><br/>
+  <div id="tableContent"></div> <!-- The table will appear here dynamically with the data, see the script -->
   <script>
     // load the vscode API
     const vscode = acquireVsCodeApi();
 
-    // open the database selection dialog on button (id=openDatabase) click
+    // open the database selection dialog when you click on the button "Open DB"
     document.getElementById('openDatabase').addEventListener('click', () => { vscode.postMessage({ command: 'openDatabaseDialog'}); });
 
-    // fetch the table data when the user selects a table in the select element
+    // fetch the table data when the user selects a table in the "select" element
     document.getElementById('tableList').addEventListener('change', (event) => {
-      const selectedTable = event.target.value;
-      vscode.postMessage({ command: 'fetchTableData', tableName: selectedTable });
+        const selectedTable = event.target.value;
+        vscode.postMessage({ command: 'fetchTableData', tableName: selectedTable });
     });
 
     // listen for messages from the extension
     window.addEventListener('message', event => {
       const message = event.data;
       switch (message.command) {
-        case 'showTables': // show the tables names in the select element
+        case 'showTables': // show the db table names in the "select" element
           const tableList = document.getElementById('tableList');
-          tableList.innerHTML = message.tables.map(table => `<option value="${table}">${table}</option>`).join('');
+          tableList.innerHTML = `<option value="">Please select a table</option>` + 
+                              message.tables.map(table => `<option value="${table}">${table}</option>`).join('');
           break;
-        case 'showTableData': // show the table data in a table element
+        case 'showTableData': // show the db table data in a "table" element
           const tableData = message.data;
           const tableContentDiv = document.getElementById('tableContent');
+
           let tableHtml = '<table>';
           tableHtml += '<tr>';
+
           tableData.columns.forEach(column => { tableHtml += `<th>${column}</th>`; });
           tableHtml += '</tr>';
+
           tableData.rows.forEach(row => {
             tableHtml += '<tr>';
             row.forEach(cell => { tableHtml += `<td>${cell}</td>`; });
             tableHtml += '</tr>';
           });
+
           tableHtml += '</table>';
           tableContentDiv.innerHTML = tableHtml;
           break;
-	    }
+        case 'showSelectedDB': // show the selected db name in the "paragraph" element next to the "Open DB" button
+          const selectedDBSpan = document.getElementById('selectedDB').querySelector('span');
+          selectedDBSpan.innerText = message.dbName;
+          if (message.dbName === 'No database selected.') {
+            selectedDBSpan.classList.add('no-db-selected');
+            selectedDBSpan.classList.remove('db-selected');
+          } else {
+            selectedDBSpan.classList.add('db-selected');
+            selectedDBSpan.classList.remove('no-db-selected');
+          }
+          break;
+        default:
+          break;
+      }
     });
   </script>
 </body>

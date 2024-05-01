@@ -4,9 +4,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('sqlite-viewer is now active.');
+	console.log('SQLite Viewer is now active!');
 
-	let showDatabaseDisposable = vscode.commands.registerCommand('sqlite-viewer.showDatabase', () => {
+	let showDatabaseDisposable = vscode.commands.registerCommand('sqlite-viewer.startDbViewer', () => {
 		const panel = vscode.window.createWebviewPanel('sqliteViewer', 'SQLite DB Viewer', vscode.ViewColumn.One,{enableScripts: true});
 
 		const htmlPath = path.join(context.extensionPath, 'src', 'index.html');
@@ -44,10 +44,18 @@ export function activate(context: vscode.ExtensionContext) {
 											vscode.window.showErrorMessage('Error while getting tables: ' + err.message);
 											return;
 										}
+
 										panel.webview.postMessage({
 											command: 'showTables',
 											tables: tables.map((t: { name: string }) => t.name)
 										});
+
+									});
+
+									// send the db name to the webview
+									panel.webview.postMessage({
+										command: 'showSelectedDB',
+										dbName: path.basename(fileUri[0].fsPath)
 									});
 
 								});
@@ -58,35 +66,40 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 						break;
 					case 'fetchTableData': // fetch table data
-							if (db) {
-								db.all(`SELECT * FROM ${message.tableName}`, [], (err, rows: any[]) => {
-									if (err) {
-										vscode.window.showErrorMessage('Error while fetching data: ' + err.message);
-										return;
+						if (db) {
+							db.all(`SELECT * FROM ${message.tableName}`, [], (err, rows: any[]) => {
+								if (err) {
+									vscode.window.showErrorMessage('Error while fetching data: ' + err.message);
+									return;
+								}
+
+								let columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+								let tableData = rows.map(row => Object.values(row));
+
+								panel.webview.postMessage({
+									command: 'showTableData',
+									data: {
+										columns: columns,
+										rows: tableData
 									}
-
-									let columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-									let tableData = rows.map(row => Object.values(row));
-
-									panel.webview.postMessage({
-										command: 'showTableData',
-										data: {
-											columns: columns,
-											rows: tableData
-										}
-									});
 								});
-							} else {
-								vscode.window.showErrorMessage('No database opened');
-							}
+							});
+						} else {
+							vscode.window.showErrorMessage('No database opened');
+						}
+						break;
+					default:
+						vscode.window.showErrorMessage('Unknown command: ' + message.command);
 						break;
 				}
 			},
 			undefined,
 			context.subscriptions
 		);
-	  });
-	  context.subscriptions.push(showDatabaseDisposable);
+
+	});
+
+	context.subscriptions.push(showDatabaseDisposable);
 }
  
 export function deactivate(context: vscode.ExtensionContext) {
