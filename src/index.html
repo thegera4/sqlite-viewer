@@ -41,6 +41,7 @@
     select {
       padding: 8px;
       font-size: 14px;
+      border-radius: 5px;
     }
     #tableContent {
       overflow-x: auto;
@@ -59,6 +60,39 @@
     th {
       background-color: #0078d4;
     }
+    tr:nth-child(even) {
+      background-color: #414141;
+    }
+    #actions {
+      margin-top: 2rem;
+    }
+    input {
+      padding: 8px;
+      font-size: 14px;
+      margin-right: 1rem;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      min-width: 190px;
+    }
+    button:hover {
+      background-color: #005a9e;
+    }
+    #insertRecordDiv, #updateRecordDiv, #deleteRecordDiv {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 20px;
+      margin-top: 1rem;
+    }
+    #insertRecordDiv, #updateRecordDiv, #deleteRecordDiv input {
+      margin-bottom: 1rem;
+    }
     #deleteRecordButton {
       padding: 10px 20px;
       background-color: #ff5722;
@@ -68,22 +102,26 @@
       cursor: pointer;
       margin-left: 1rem;
     }
+    #deleteRecordButton:hover {
+      background-color: #d32f2f;
+    }
   </style>
 </head>
 <body>
   <h1 id="main-title">SQLite DB Viewer</h1>
   <br/>
-  <p>Start by selecting an SQLite database:</p>
+  <p>Step 1 - Start by selecting an SQLite database:</p>
   <div class="db-selection">
     <button type="button" id="openDatabase">Open DB</button>
     <p id="selectedDB">Selected: <span class="no-db-selected">No database selected.</span></p> <!-- The selected name will change dynamically, see the script-->
   </div>
-  <p>Select the table that you want to display:</p>
+  <p>Step 2 - Select the table that you want to display:</p>
   <select title="table-list" id="tableList">
     <option value="">Please select a database first</option> <!-- Other options (table names) will be fetched dynamically, see the script-->
   </select> 
   <br/><br/>
   <div id="tableContent"></div> <!-- The table will appear here dynamically with the data, see the script -->
+  <div id="actions"></div> <!-- The actions (insert, update, delete) will appear here dynamically, see the script -->
   <script>
     // load the vscode API
     const vscode = acquireVsCodeApi();
@@ -101,54 +139,165 @@
     // listen for messages from the extension
     window.addEventListener('message', event => {
       const message = event.data;
+      let tableList = document.getElementById('tableList');
+      let actionsDiv = document.getElementById('actions');
+      let tableContentDiv = document.getElementById('tableContent');
       switch (message.command) {
         case 'showTables': // show the db table names in the "select" element
-          const tableList = document.getElementById('tableList');
+          // clear "actionsDiv" to avoid duplication of elements
+          while (actionsDiv.firstChild) {
+            actionsDiv.removeChild(actionsDiv.firstChild);
+          }
           tableList.innerHTML = `<option value="">Please select a table</option>` + 
                               message.tables.map(table => `<option value="${table}">${table}</option>`).join('');
           break;
-        case 'showTableData': // show the db table data in a "table" element
+        case 'showTableData': // show the db table data in a "table" element and the action controls (insert, update, delete)
+          // clear "actionsDiv" first to avoid duplication of elements
+          while (actionsDiv.firstChild) { actionsDiv.removeChild(actionsDiv.firstChild);}
+          // create the table element with the data
           const tableData = message.data;
-          const tableContentDiv = document.getElementById('tableContent');
-
           let tableHtml = '<table>';
           tableHtml += '<tr>';
-
           tableData.columns.forEach(column => { tableHtml += `<th>${column}</th>`; });
           tableHtml += '</tr>';
-
           tableData.rows.forEach(row => {
             tableHtml += '<tr>';
             row.forEach(cell => { tableHtml += `<td>${cell}</td>`; });
             tableHtml += '</tr>';
           });
-
           tableHtml += '</table>';
           tableContentDiv.innerHTML = tableHtml;
 
-          // create the select element to delete a record
-          let deleteRecordSelect = document.createElement('select');
-          deleteRecordSelect.id = 'deleteRecordSelect';
-          tableData.rows.forEach((row, index) => {
-            let option = document.createElement('option');
-            option.value = row[0];
-            option.text = row[0];
-            deleteRecordSelect.appendChild(option);
+          // create the actions elements to insert, update, delete a record 
+          let noteParagraph = document.createElement('p');
+          noteParagraph.innerText = 'Important Note: When using the "Update record" action, please remember to include all the data from your table and change only the field that you need. If you leave blank fields while updating, you will lose your data!, because you are sending empty data...';
+          actionsDiv.appendChild(noteParagraph);
+          let actionsParagraph = document.createElement('p');
+          actionsParagraph.innerText = '(Optional) - Select an action to interact with the table:';
+          actionsDiv.appendChild(actionsParagraph);
+          let actionsSelect = document.createElement('select');
+          actionsSelect.id = 'actionsSelect';
+          actionsSelect.innerHTML = '<option value="">Select an action</option>' +
+                                    '<option value="insertRecord">Insert record</option>' +
+                                    '<option value="updateRecord">Update record</option>' +
+                                    '<option value="deleteRecord">Delete record</option>';
+          actionsSelect.addEventListener('change', (event) => {
+            const selectedAction = event.target.value;
+            switch (selectedAction) {
+              case 'insertRecord':
+                // if other elements exist in the actionsDiv, remove them, except the 'actionSelect' element
+                while (actionsDiv.children.length > 1) {
+                  if (actionsDiv.lastChild.id === 'actionsSelect') break;
+                  actionsDiv.removeChild(actionsDiv.lastChild);
+                }
+                let columns = []
+                let values = []
+                let insertRecordDiv = document.createElement('div');
+                insertRecordDiv.id = 'insertRecordDiv';
+                //create input elements to insert a record, according to the table columns
+                tableData.columns.forEach((column, index) => {
+                  if (column.includes('id')) return;
+                  columns.push(column);
+                  let input = document.createElement('input');
+                  input.type = 'text';
+                  input.id = `insertInput${index}`;
+                  input.placeholder = column;
+                  insertRecordDiv.appendChild(input);
+                  values.push(input.value);
+                });
+                // create the button element to insert a record
+                let insertRecordButton = document.createElement('button');
+                insertRecordButton.id = 'insertRecordButton';
+                insertRecordButton.innerText = 'Insert record';
+                insertRecordButton.addEventListener('click', () => {
+                  let row = [];
+                  tableData.columns.forEach((column, index) => {
+                    if (column.includes('id')) return;
+                    let value = document.getElementById(`insertInput${index}`).value;
+                    row.push(value);
+                  });
+                  vscode.postMessage({ command: 'insertRecord', tableName: selectedTable, columns: columns, values: row});
+                });
+                insertRecordDiv.appendChild(insertRecordButton);
+                actionsDiv.appendChild(insertRecordDiv);
+                break;
+              case 'updateRecord':
+                // if other elements exist in the actionsDiv, remove them, except the 'actionSelect' element
+                while (actionsDiv.children.length > 1) {
+                  if (actionsDiv.lastChild.id === 'actionsSelect') break;
+                  actionsDiv.removeChild(actionsDiv.lastChild);
+                }
+                // create the select element to select the record id to update
+                let updateRecordSelect = document.createElement('select');
+                updateRecordSelect.id = 'updateRecordSelect';
+                tableData.rows.forEach((row, index) => {
+                  let option = document.createElement('option');
+                  option.value = row[0];
+                  option.text = row[0];
+                  updateRecordSelect.appendChild(option);
+                });
+                actionsDiv.appendChild(updateRecordSelect);
+                // create input elements to update a record, according to the table columns
+                tableData.columns.forEach((column, index) => {
+                  if (column.includes('id')) return;
+                  let input = document.createElement('input');
+                  input.type = 'text';
+                  input.id = `updateInput${index}`;
+                  input.placeholder = column;
+                  actionsDiv.appendChild(input);
+                });
+                
+                // create the button element to update a record
+                let updateRecordButton = document.createElement('button');
+                updateRecordButton.id = 'updateRecordButton';
+                updateRecordButton.innerText = 'Update record';
+                updateRecordButton.addEventListener('click', () => {
+                  let columns = [];
+                  let values = [];
+                  tableData.columns.forEach((column, index) => {
+                    if (column.includes('id')) return;
+                    columns.push(column);
+                    values.push(document.getElementById(`updateInput${index}`).value);
+                  });
+                  vscode.postMessage({ command: 'updateRecord', tableName: selectedTable, columns: columns, 
+                    values: values, rowId: document.getElementById('updateRecordSelect').value});
+                });
+                actionsDiv.appendChild(updateRecordButton);
+                break;
+              case 'deleteRecord':
+                // if other elements exist in the actionsDiv, remove them, except the 'actionSelect' element
+                while (actionsDiv.children.length > 1) {
+                  if (actionsDiv.lastChild.id === 'actionsSelect') break;
+                  actionsDiv.removeChild(actionsDiv.lastChild);
+                }
+                // create the select element to delete a record
+                let deleteRecordSelect = document.createElement('select');
+                deleteRecordSelect.id = 'deleteRecordSelect';
+                tableData.rows.forEach((row, index) => {
+                  let option = document.createElement('option');
+                  option.value = row[0];
+                  option.text = row[0];
+                  deleteRecordSelect.appendChild(option);
+                });
+
+                // create the button element to delete a record
+                let deleteRecordButton = document.createElement('button');
+                deleteRecordButton.id = 'deleteRecordButton';
+                deleteRecordButton.innerText = 'Delete record';
+                deleteRecordButton.addEventListener('click', () => {
+                  const selectedId = document.getElementById('deleteRecordSelect').value;
+                  vscode.postMessage({ command: 'deleteRecord', tableName: selectedTable, rowId: selectedId });
+                });
+
+                // append the select and button elements to tableContentDiv
+                actionsDiv.appendChild(deleteRecordSelect);
+                actionsDiv.appendChild(deleteRecordButton);
+                break;
+              default:
+                break;
+            }
           });
-
-          // create the button element to delete a record
-          let deleteRecordButton = document.createElement('button');
-          deleteRecordButton.id = 'deleteRecordButton';
-          deleteRecordButton.innerText = 'Delete record';
-          deleteRecordButton.addEventListener('click', () => {
-            const selectedId = document.getElementById('deleteRecordSelect').value;
-            vscode.postMessage({ command: 'deleteRecord', tableName: selectedTable, rowId: selectedId });
-          });
-
-          // append the select and button elements to tableContentDiv
-          tableContentDiv.appendChild(deleteRecordSelect);
-          tableContentDiv.appendChild(deleteRecordButton);
-
+          actionsDiv.appendChild(actionsSelect);
           break;
         case 'showSelectedDB': // show the selected db name in the "paragraph" element next to the "Open DB" button
           const selectedDBSpan = document.getElementById('selectedDB').querySelector('span');

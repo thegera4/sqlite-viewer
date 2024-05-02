@@ -119,6 +119,94 @@ export function activate(context: vscode.ExtensionContext) {
 							vscode.window.showErrorMessage('No database opened');
 						}
 						break;
+					case 'updateRecord':
+						console.log("updateRecord msg:", message);
+						console.log("msg.columns:", message.columns);
+						console.log("msg.values:", message.values);
+						if (db) {
+							db.run('BEGIN TRANSACTION', (err) => {
+								if (err) {
+								  vscode.window.showErrorMessage('Error while starting transaction: ' + err.message);
+								  return;
+								}
+							  
+								let setValues = message.columns.map((col: string, index: number) => `${col} = ?`).join(', ');
+								let values = message.values;
+								values.push(message.rowId);
+							  
+								db.run(`UPDATE ${message.tableName} SET ${setValues} WHERE rowid = ?`, values, (err) => {
+								  if (err) {
+									vscode.window.showErrorMessage('Error while updating record: ' + err.message);
+									db.run('ROLLBACK');
+									return;
+								  }
+							  
+								  db.run('COMMIT', (err) => {
+									if (err) {
+									  vscode.window.showErrorMessage('Error while committing transaction: ' + err.message);
+									  return;
+									}
+							  
+									vscode.window.showInformationMessage('Record updated successfully');
+									//update ui table data
+									db.all(`SELECT rowid, * FROM ${message.tableName}`, [], (err, rows: any[]) => {
+									  if (err) {
+										vscode.window.showErrorMessage('Error while fetching data: ' + err.message);
+										return;
+									  }
+							  
+									  let columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+									  let tableData = rows.map(row => Object.values(row));
+							  
+									  panel.webview.postMessage({
+										command: 'showTableData',
+										data: {
+										  columns: columns,
+										  rows: tableData
+										}
+									  });
+									});
+								  });
+								});
+							  });
+						} else {
+							vscode.window.showErrorMessage('No database opened');
+						}
+						break;
+					case 'insertRecord':
+						if (db) {
+							let columns = message.columns.join(', ');
+							let values = message.values.map(() => '?').join(', ');
+
+							db.run(`INSERT INTO ${message.tableName} (${columns}) VALUES (${values})`, message.values, (err) => {
+								if (err) {
+									vscode.window.showErrorMessage('Error while inserting record: ' + err.message);
+									return;
+								}
+								vscode.window.showInformationMessage('Record added successfully');
+								//update ui table data
+								db.all(`SELECT rowid, * FROM ${message.tableName}`, [], (err, rows: any[]) => {
+									if (err) {
+										vscode.window.showErrorMessage('Error while fetching data: ' + err.message);
+										return;
+									}
+
+									let columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+									let tableData = rows.map(row => Object.values(row));
+
+									panel.webview.postMessage({
+										command: 'showTableData',
+										data: {
+											columns: columns,
+											rows: tableData
+										}
+									});
+								});
+							});
+						} else {
+							vscode.window.showErrorMessage('No database opened');
+						}
+						break;
 					default:
 						vscode.window.showErrorMessage('Unknown command: ' + message.command);
 						break;
