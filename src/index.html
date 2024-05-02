@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -71,6 +71,8 @@
       font-size: 14px;
       margin-right: 1rem;
       border-radius: 5px;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
     }
     button {
       padding: 10px 20px;
@@ -85,13 +87,16 @@
       background-color: #005a9e;
     }
     #insertRecordDiv, #updateRecordDiv, #deleteRecordDiv {
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 20px;
       margin-top: 1rem;
     }
     #insertRecordDiv, #updateRecordDiv, #deleteRecordDiv input {
       margin-bottom: 1rem;
+    }
+    #updateRecordSelect, #deleteRecordSelect {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 5px;
+      margin-right: 1rem;
     }
     #deleteRecordButton {
       padding: 10px 20px;
@@ -190,10 +195,18 @@
                   if (actionsDiv.lastChild.id === 'actionsSelect') break;
                   actionsDiv.removeChild(actionsDiv.lastChild);
                 }
+
+                // arrays to store the columns and values of the table
                 let columns = []
                 let values = []
+
+                // create dynamic elements
                 let insertRecordDiv = document.createElement('div');
                 insertRecordDiv.id = 'insertRecordDiv';
+                let insertRecordTitle = document.createElement('h3');
+                insertRecordTitle.innerText = 'Enter the values and click the button to add a new record:';
+                insertRecordDiv.appendChild(insertRecordTitle);
+
                 //create input elements to insert a record, according to the table columns
                 tableData.columns.forEach((column, index) => {
                   if (column.includes('id')) return;
@@ -205,6 +218,7 @@
                   insertRecordDiv.appendChild(input);
                   values.push(input.value);
                 });
+
                 // create the button element to insert a record
                 let insertRecordButton = document.createElement('button');
                 insertRecordButton.id = 'insertRecordButton';
@@ -218,6 +232,8 @@
                   });
                   vscode.postMessage({ command: 'insertRecord', tableName: selectedTable, columns: columns, values: row});
                 });
+
+                // append the elements to their respective div
                 insertRecordDiv.appendChild(insertRecordButton);
                 actionsDiv.appendChild(insertRecordDiv);
                 break;
@@ -227,6 +243,14 @@
                   if (actionsDiv.lastChild.id === 'actionsSelect') break;
                   actionsDiv.removeChild(actionsDiv.lastChild);
                 }
+
+                // create dynamic elements
+                let updateRecordDiv = document.createElement('div');
+                updateRecordDiv.id = 'updateRecordDiv';
+                let updateRecordTitle = document.createElement('h3');
+                updateRecordTitle.innerText = 'Select the record to update and change the fields values:';
+                updateRecordDiv.appendChild(updateRecordTitle);
+
                 // create the select element to select the record id to update
                 let updateRecordSelect = document.createElement('select');
                 updateRecordSelect.id = 'updateRecordSelect';
@@ -236,7 +260,8 @@
                   option.text = row[0];
                   updateRecordSelect.appendChild(option);
                 });
-                actionsDiv.appendChild(updateRecordSelect);
+                updateRecordDiv.appendChild(updateRecordSelect);
+
                 // create input elements to update a record, according to the table columns
                 tableData.columns.forEach((column, index) => {
                   if (column.includes('id')) return;
@@ -244,7 +269,7 @@
                   input.type = 'text';
                   input.id = `updateInput${index}`;
                   input.placeholder = column;
-                  actionsDiv.appendChild(input);
+                  updateRecordDiv.appendChild(input);
                 });
                 
                 // create the button element to update a record
@@ -262,7 +287,10 @@
                   vscode.postMessage({ command: 'updateRecord', tableName: selectedTable, columns: columns, 
                     values: values, rowId: document.getElementById('updateRecordSelect').value});
                 });
-                actionsDiv.appendChild(updateRecordButton);
+
+                // append the elements to their respective div
+                updateRecordDiv.appendChild(updateRecordButton);
+                actionsDiv.appendChild(updateRecordDiv);
                 break;
               case 'deleteRecord':
                 // if other elements exist in the actionsDiv, remove them, except the 'actionSelect' element
@@ -270,6 +298,14 @@
                   if (actionsDiv.lastChild.id === 'actionsSelect') break;
                   actionsDiv.removeChild(actionsDiv.lastChild);
                 }
+
+                // create dynamic elements
+                let deleteRecordDiv = document.createElement('div');
+                deleteRecordDiv.id = 'deleteRecordDiv';
+                let deleteRecordTitle = document.createElement('h3');
+                deleteRecordTitle.innerText = 'Select the record to delete and click the button:';
+                deleteRecordDiv.appendChild(deleteRecordTitle);
+
                 // create the select element to delete a record
                 let deleteRecordSelect = document.createElement('select');
                 deleteRecordSelect.id = 'deleteRecordSelect';
@@ -289,9 +325,10 @@
                   vscode.postMessage({ command: 'deleteRecord', tableName: selectedTable, rowId: selectedId });
                 });
 
-                // append the select and button elements to tableContentDiv
-                actionsDiv.appendChild(deleteRecordSelect);
-                actionsDiv.appendChild(deleteRecordButton);
+                // append the elements to their respective div
+                deleteRecordDiv.appendChild(deleteRecordSelect);
+                deleteRecordDiv.appendChild(deleteRecordButton);
+                actionsDiv.appendChild(deleteRecordDiv);
                 break;
               default:
                 break;
