@@ -17,6 +17,13 @@
   ],
   "activationEvents": [],
   "main": "./out/extension.js",
+  "files": [
+    "out",
+    "images",
+    "src",
+    "package.json",
+    "README.md"
+  ],
   "contributes": {
     "commands": [
       {
@@ -26,8 +33,9 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile && npm run copy-html",
     "compile": "tsc -p ./",
+    "copy-html": "copy src\\index.html out\\",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
