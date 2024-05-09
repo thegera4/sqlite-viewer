@@ -4,7 +4,7 @@
   "description": "See and manage your sqlite databases easily. ",
   "version": "1.0.0",
   "publisher": "JuanGerardoMedellinIbarra",
-  "icon": "./images/sqlite_viewer_logo.png",
+  "icon": "images/sqlite_viewer_logo.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/thegera4/sqlite-viewer"
