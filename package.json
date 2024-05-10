@@ -2,7 +2,7 @@
   "name": "sqlite-viewer-browser",
   "displayName": "Sqlite Viewer-Browser",
   "description": "See and manage your sqlite databases easily. ",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "JuanGerardoMedellinIbarra",
   "icon": "images/sqlite_viewer_logo.png",
   "repository": {
