@@ -274,7 +274,7 @@
             actionsDiv.removeChild(actionsDiv.firstChild);
           }
           tableList.innerHTML = `<option value="">Please select a table</option>` + 
-                              message.tables.map(table => `<option value="${table}">${table}</option>`).join('');
+                              message.tables.map(table => `<option value="${escapeHtml(table)}">${escapeHtml(table)}</option>`).join('');
           break;
         case 'showTableData': // show the db table data in a "table" element and the action controls (insert, update, delete)
           // clear "actionsDiv" first to avoid duplication of elements
