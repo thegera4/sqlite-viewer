@@ -202,10 +202,16 @@
         return;
       }
 
-      if (!currentTableData) return;
+      if (!currentTableData) {
+        alert('No table data available to filter');
+        return;
+      }
 
       const columnIndex = currentTableData.columns.indexOf(filterColumn);
-      if (columnIndex === -1) return;
+      if (columnIndex === -1) {
+        alert('Selected column not found in table data');
+        return;
+      }
 
       filteredData = {
         columns: currentTableData.columns,
@@ -226,16 +232,28 @@
       }
     });
 
+    // Function to escape HTML to prevent XSS
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
     // Function to display table data
     function displayTableData(tableData) {
       let tableContentDiv = document.getElementById('tableContent');
       let tableHtml = '<table>';
       tableHtml += '<tr>';
-      tableData.columns.forEach(column => { tableHtml += `<th>${column}</th>`; });
+      tableData.columns.forEach(column => { tableHtml += `<th>${escapeHtml(column)}</th>`; });
       tableHtml += '</tr>';
       tableData.rows.forEach(row => {
         tableHtml += '<tr>';
-        row.forEach(cell => { tableHtml += `<td>${cell}</td>`; });
+        row.forEach(cell => { tableHtml += `<td>${escapeHtml(cell)}</td>`; });
         tableHtml += '</tr>';
       });
       tableHtml += '</table>';
@@ -264,16 +282,15 @@
           // store the table data
           currentTableData = message.data;
           filteredData = null;
-          const tableData = message.data;
           
           // Populate filter column dropdown
           let filterColumn = document.getElementById('filterColumn');
           filterColumn.innerHTML = '<option value="">Select column</option>' +
-                                  tableData.columns.map(col => `<option value="${col}">${col}</option>`).join('');
+                                  currentTableData.columns.map(col => `<option value="${escapeHtml(col)}">${escapeHtml(col)}</option>`).join('');
           filterSection.style.display = 'block';
 
           // Display the table
-          displayTableData(tableData);
+          displayTableData(currentTableData);
 
           // create the actions elements to insert, update, delete a record 
           let noteParagraph = document.createElement('p');
@@ -310,7 +327,7 @@
                 insertRecordDiv.appendChild(insertRecordTitle);
 
                 //create input elements to insert a record, according to the table columns
-                tableData.columns.forEach((column, index) => {
+                currentTableData.columns.forEach((column, index) => {
                   if (column.includes('id')) return;
                   columns.push(column);
                   let input = document.createElement('input');
@@ -327,7 +344,7 @@
                 insertRecordButton.innerText = 'Insert record';
                 insertRecordButton.addEventListener('click', () => {
                   let row = [];
-                  tableData.columns.forEach((column, index) => {
+                  currentTableData.columns.forEach((column, index) => {
                     if (column.includes('id')) return;
                     let value = document.getElementById(`insertInput${index}`).value;
                     row.push(value);
@@ -356,7 +373,7 @@
                 // create the select element to select the record id to update
                 let updateRecordSelect = document.createElement('select');
                 updateRecordSelect.id = 'updateRecordSelect';
-                tableData.rows.forEach((row, index) => {
+                currentTableData.rows.forEach((row, index) => {
                   let option = document.createElement('option');
                   option.value = row[0];
                   option.text = row[0];
@@ -365,7 +382,7 @@
                 updateRecordDiv.appendChild(updateRecordSelect);
 
                 // create input elements to update a record, according to the table columns
-                tableData.columns.forEach((column, index) => {
+                currentTableData.columns.forEach((column, index) => {
                   if (column.includes('id')) return;
                   let input = document.createElement('input');
                   input.type = 'text';
@@ -381,7 +398,7 @@
                 updateRecordButton.addEventListener('click', () => {
                   let columns = [];
                   let values = [];
-                  tableData.columns.forEach((column, index) => {
+                  currentTableData.columns.forEach((column, index) => {
                     if (column.includes('id')) return;
                     columns.push(column);
                     values.push(document.getElementById(`updateInput${index}`).value);
@@ -411,7 +428,7 @@
                 // create the select element to delete a record
                 let deleteRecordSelect = document.createElement('select');
                 deleteRecordSelect.id = 'deleteRecordSelect';
-                tableData.rows.forEach((row, index) => {
+                currentTableData.rows.forEach((row, index) => {
                   let option = document.createElement('option');
                   option.value = row[0];
                   option.text = row[0];
