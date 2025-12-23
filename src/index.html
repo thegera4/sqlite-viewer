@@ -226,6 +226,7 @@
 
     document.getElementById('clearFilterButton').addEventListener('click', () => {
       document.getElementById('filterInput').value = '';
+      document.getElementById('filterColumn').value = '';
       filteredData = null;
       if (currentTableData) {
         displayTableData(currentTableData);

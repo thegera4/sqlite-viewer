@@ -50,7 +50,9 @@ Use the new filtering feature to narrow down your analysis:
 
 1. Select a table from the dropdown
 2. Choose a column to filter by
-3. Enter a filter value (e.g., "sweet" for taste_profile, ">5" for numeric comparisons)
+3. Enter a filter value (e.g., "sweet" for taste_profile, "5.99" for prices)
+   - The filter performs case-insensitive substring matching
+   - For example, entering "sweet" will match "sweet", "Sweet", "bittersweet"
 4. Click "Apply Filter"
 5. Click "Clear Filter" to reset
 
