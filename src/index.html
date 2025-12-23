@@ -110,6 +110,47 @@
     #deleteRecordButton:hover {
       background-color: #d32f2f;
     }
+    #filterSection {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    #filterInput {
+      padding: 8px;
+      font-size: 14px;
+      margin-right: 1rem;
+      border-radius: 5px;
+      width: 300px;
+    }
+    #filterColumn {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 5px;
+      margin-right: 1rem;
+    }
+    #applyFilterButton, #clearFilterButton {
+      padding: 8px 16px;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-right: 0.5rem;
+    }
+    #applyFilterButton:hover, #clearFilterButton:hover {
+      background-color: #005a9e;
+    }
+    .info-box {
+      background-color: #1e1e1e;
+      border-left: 4px solid #0078d4;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+    }
+    .info-box h3 {
+      margin-top: 0;
+      color: #0078d4;
+    }
   </style>
 </head>
 <body>
@@ -124,12 +165,23 @@
     <option value="">Please select a database first</option> <!-- Other options (table names) will be fetched dynamically, see the script-->
   </select> 
   <br/>
+  <div id="filterSection">
+    <h3>Filter Data</h3>
+    <select id="filterColumn">
+      <option value="">Select column</option>
+    </select>
+    <input type="text" id="filterInput" placeholder="Enter filter value...">
+    <button id="applyFilterButton">Apply Filter</button>
+    <button id="clearFilterButton">Clear Filter</button>
+  </div>
   <div id="tableContent"></div> <!-- The table will appear here dynamically with the data, see the script -->
   <div id="actions"></div> <!-- The actions (insert, update, delete) will appear here dynamically, see the script -->
   <script>
     // load the vscode API
     const vscode = acquireVsCodeApi();
     let selectedTable = ''; // store the selected table name
+    let currentTableData = null; // store current table data for filtering
+    let filteredData = null; // store filtered data
 
     // open the database selection dialog when you click on the button "Open DB"
     document.getElementById('openDatabase').addEventListener('click', () => { vscode.postMessage({ command: 'openDatabaseDialog'}); });
@@ -140,12 +192,63 @@
       vscode.postMessage({ command: 'fetchTableData', tableName: selectedTable });
     });
 
+    // Filter functionality
+    document.getElementById('applyFilterButton').addEventListener('click', () => {
+      const filterColumn = document.getElementById('filterColumn').value;
+      const filterValue = document.getElementById('filterInput').value.toLowerCase();
+      
+      if (!filterColumn || !filterValue) {
+        alert('Please select a column and enter a filter value');
+        return;
+      }
+
+      if (!currentTableData) return;
+
+      const columnIndex = currentTableData.columns.indexOf(filterColumn);
+      if (columnIndex === -1) return;
+
+      filteredData = {
+        columns: currentTableData.columns,
+        rows: currentTableData.rows.filter(row => {
+          const cellValue = String(row[columnIndex]).toLowerCase();
+          return cellValue.includes(filterValue);
+        })
+      };
+
+      displayTableData(filteredData);
+    });
+
+    document.getElementById('clearFilterButton').addEventListener('click', () => {
+      document.getElementById('filterInput').value = '';
+      filteredData = null;
+      if (currentTableData) {
+        displayTableData(currentTableData);
+      }
+    });
+
+    // Function to display table data
+    function displayTableData(tableData) {
+      let tableContentDiv = document.getElementById('tableContent');
+      let tableHtml = '<table>';
+      tableHtml += '<tr>';
+      tableData.columns.forEach(column => { tableHtml += `<th>${column}</th>`; });
+      tableHtml += '</tr>';
+      tableData.rows.forEach(row => {
+        tableHtml += '<tr>';
+        row.forEach(cell => { tableHtml += `<td>${cell}</td>`; });
+        tableHtml += '</tr>';
+      });
+      tableHtml += '</table>';
+      tableContentDiv.innerHTML = tableHtml;
+    }
+
     // listen for messages from the extension
     window.addEventListener('message', event => {
       const message = event.data;
       let tableList = document.getElementById('tableList');
       let actionsDiv = document.getElementById('actions');
       let tableContentDiv = document.getElementById('tableContent');
+      let filterSection = document.getElementById('filterSection');
       switch (message.command) {
         case 'showTables': // show the db table names in the "select" element
           // clear "actionsDiv" to avoid duplication of elements
@@ -158,19 +261,19 @@
         case 'showTableData': // show the db table data in a "table" element and the action controls (insert, update, delete)
           // clear "actionsDiv" first to avoid duplication of elements
           while (actionsDiv.firstChild) { actionsDiv.removeChild(actionsDiv.firstChild);}
-          // create the table element with the data
+          // store the table data
+          currentTableData = message.data;
+          filteredData = null;
           const tableData = message.data;
-          let tableHtml = '<table>';
-          tableHtml += '<tr>';
-          tableData.columns.forEach(column => { tableHtml += `<th>${column}</th>`; });
-          tableHtml += '</tr>';
-          tableData.rows.forEach(row => {
-            tableHtml += '<tr>';
-            row.forEach(cell => { tableHtml += `<td>${cell}</td>`; });
-            tableHtml += '</tr>';
-          });
-          tableHtml += '</table>';
-          tableContentDiv.innerHTML = tableHtml;
+          
+          // Populate filter column dropdown
+          let filterColumn = document.getElementById('filterColumn');
+          filterColumn.innerHTML = '<option value="">Select column</option>' +
+                                  tableData.columns.map(col => `<option value="${col}">${col}</option>`).join('');
+          filterSection.style.display = 'block';
+
+          // Display the table
+          displayTableData(tableData);
 
           // create the actions elements to insert, update, delete a record 
           let noteParagraph = document.createElement('p');

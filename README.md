@@ -11,6 +11,19 @@ or from the 'Extensions' option in the side menu in your VSCode (search for 'Sql
 
 ![vscode extension test](https://github.com/thegera4/sqlite-viewer/assets/84020433/abae20aa-1283-4047-9e26-80005812b95c)
 
+## Sample Database for Customer Behavior Analysis
+
+A sample database is included in the `sample-data` folder that demonstrates how to analyze customer behavior when factors such as prices and taste preferences are altered. The database includes:
+
+- Customer data with purchase history
+- Product catalog with prices and taste profiles
+- Pre-built views for analyzing:
+  - Customer purchasing patterns
+  - Price sensitivity
+  - Taste preferences
+
+See `sample-data/README.md` for detailed information on how to use the sample database for customer behavior analysis.
+
 ## Release Notes
 
 This is my first extension for VSCode. I appreciate any feedback or contribution to improve the project.
