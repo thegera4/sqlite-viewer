@@ -24,6 +24,8 @@ A sample database is included in the `sample-data` folder that demonstrates how 
 
 See `sample-data/README.md` for detailed information on how to use the sample database for customer behavior analysis.
 
+For a complete guide on analyzing customer behavior, see [CUSTOMER_BEHAVIOR_GUIDE.md](CUSTOMER_BEHAVIOR_GUIDE.md).
+
 ## Release Notes
 
 This is my first extension for VSCode. I appreciate any feedback or contribution to improve the project.
